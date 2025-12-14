@@ -1,0 +1,86 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Output files
+output/
+*.mp4
+*.avi
+
+# Model weights (if large)
+# weights/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+sample_video/
+yolo_dataset/
+video/
+dataset/
+
+.claude/
+
+input/
+
+# Dataset scripts
+check_dataset.py
+create_dataset.py
+
+weights/

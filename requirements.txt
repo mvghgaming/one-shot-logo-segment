@@ -1,0 +1,17 @@
+# Core deep learning libraries (CUDA 12.8)
+torch
+torchvision
+torchaudio
+
+# Computer vision
+opencv-python
+Pillow
+
+# Numerical computing
+numpy
+
+# YOLO object detection
+ultralytics
+
+# EfficientNet model
+efficientnet-pytorch
