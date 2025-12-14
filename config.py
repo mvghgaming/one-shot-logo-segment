@@ -44,10 +44,10 @@ RECOG_IMAGE_SIZE = 380
 
 # --- Thresholds ---
 # YOLO_CONF_THRESHOLD: Confidence threshold for YOLO detections
-YOLO_CONF_THRESHOLD = 0.7
+YOLO_CONF_THRESHOLD = 0.5
 
-# RECOG_CONF_THRESHOLD: Confidence threshold for recognition (cosine similarity)
-RECOG_CONF_THRESHOLD = 0.7
+# LOGO_SIMILARITY_THRESHOLD: Confidence threshold for logo recognition (cosine similarity)
+LOGO_SIMILARITY_THRESHOLD = 0.5
 
 # --- Worker & Queue Configs ---
 # NUM_YOLO_WORKERS: Number of parallel YOLO detection worker processes
@@ -63,7 +63,30 @@ NUM_ARCFACE_WORKERS = 1
 YOLO_BATCH_SIZE = 4
 
 # RECOG_BATCH_SIZE: Batch size for recognition inference
-RECOG_BATCH_SIZE = 4
+RECOG_BATCH_SIZE = 16
 
 # QUEUE_SIZE: Maximum number of items in each multiprocessing queue
 QUEUE_SIZE = 100 # Max items in each queue
+
+# --- Censoring Settings ---
+# CENSOR_ENABLED: Whether to censor recognized logos (True) or show annotations (False)
+CENSOR_ENABLED = False
+
+# CENSOR_SHAPE: Shape to use for censoring ("mask" for exact logo shape, "bbox" for rectangle)
+CENSOR_SHAPE = "mask"  # Options: "mask" or "bbox"
+
+# CENSOR_COLOR: Color for censoring in BGR format (B, G, R)
+CENSOR_COLOR = (0, 255, 0)  # Green
+
+# MAX_MASK_SIZE: Maximum mask area (in pixels) to censor. Logos with larger masks won't be censored.
+# Set to None to disable size filtering (censor all recognized logos regardless of size)
+MAX_MASK_SIZE = 10000  # 10KB = 10,000 pixels
+
+# OUTLINE_ENABLED: Draw outline around recognized logo masks
+OUTLINE_ENABLED = True
+
+# OUTLINE_COLOR: Color for outline in BGR format (B, G, R)
+OUTLINE_COLOR = (0, 255, 0)  # Green
+
+# OUTLINE_THICKNESS: Thickness of the outline in pixels
+OUTLINE_THICKNESS = 3

@@ -2,9 +2,21 @@
 
 ## Demo
 
-[![Demo Video](https://img.youtube.com/vi/tcZ0v_jTTe0/0.jpg)](https://youtu.be/tcZ0v_jTTe0)
+**Output Video (Color Censoring):**
 
-Watch the demo: [https://youtu.be/tcZ0v_jTTe0](https://youtu.be/tcZ0v_jTTe0)
+[![Color Censoring Demo](https://img.youtube.com/vi/Wcy3xXh9OYU/0.jpg)](https://youtu.be/Wcy3xXh9OYU)
+
+Watch: [https://youtu.be/Wcy3xXh9OYU](https://youtu.be/Wcy3xXh9OYU)
+
+**Output Video (Bboxes + Masks):**
+
+[![Bboxes + Masks Demo](https://img.youtube.com/vi/xhgNNFEplxU/0.jpg)](https://youtu.be/xhgNNFEplxU)
+
+Watch: [https://youtu.be/xhgNNFEplxU](https://youtu.be/xhgNNFEplxU)
+
+**Thresholds:**
+- `YOLO_CONF_THRESHOLD = 0.5` - Confidence threshold for YOLO detections
+- `LOGO_SIMILARITY_THRESHOLD = 0.5` - Confidence threshold for logo recognition (cosine similarity)
 
 ## Overview
 
@@ -71,6 +83,7 @@ Configure video paths in `config.py` before running.
 
 ## Configuration
 
+**Hardware:**
 - CPU: 12th gen intel(r) core(tm) i9-12900k
 - Ram: 16GB
 - GPU: NVIDIA GeForce RTX 3060 4VRAM

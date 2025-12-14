@@ -72,6 +72,31 @@ def resize_with_padding(pil_img, target_size=380, fill_color=(128, 128, 128)):
     padded_img = ImageOps.expand(resized_img, padding, fill=fill_color)
     return padded_img
 
+def apply_color_censor(frame, x1, y1, x2, y2, mask, color, shape):
+    """
+    Fill region with solid color using mask shape or bounding box.
+
+    Args:
+        frame: The image frame (modified in-place)
+        x1, y1, x2, y2: Bounding box coordinates
+        mask: Optional segmentation mask (binary array)
+        color: Fill color in BGR format (tuple)
+        shape: "mask" to use mask shape, "bbox" for rectangle
+    """
+    roi_h = y2 - y1
+    roi_w = x2 - x1
+    if roi_h <= 0 or roi_w <= 0:
+        return
+
+    if shape == "mask" and mask is not None and mask.size > 0:
+        # Fill only within mask shape
+        resized_mask = cv2.resize(mask.astype(np.uint8), (roi_w, roi_h))
+        roi = frame[y1:y2, x1:x2]
+        roi[resized_mask > 0] = color
+    else:
+        # Fill entire bounding box
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, -1)  # -1 = filled
+
 def load_embeddings(path):
     """
     Load embeddings from a pickle file if it exists.
@@ -90,9 +115,69 @@ def save_embeddings(embeddings, path):
     with open(path, 'wb') as f:
         pickle.dump(embeddings, f)
 
+def reset_output_video(output_path):
+    """
+    Delete existing output video file if it exists.
+    This ensures a clean start for new processing.
+
+    Args:
+        output_path: Path to the output video file
+    """
+    if os.path.exists(output_path):
+        try:
+            os.remove(output_path)
+            print(f"[RESET] Deleted existing output: {output_path}")
+        except Exception as e:
+            print(f"[RESET] Warning: Could not delete {output_path}: {e}")
+
+    # Also clean up temporary files
+    temp_path = output_path.replace('.mp4', '_no_audio.mp4')
+    if os.path.exists(temp_path):
+        try:
+            os.remove(temp_path)
+            print(f"[RESET] Deleted temporary file: {temp_path}")
+        except Exception as e:
+            print(f"[RESET] Warning: Could not delete {temp_path}: {e}")
+
+def draw_mask_outline(frame, x1, y1, x2, y2, mask, color, thickness):
+    """
+    Draw an outline around the mask contours.
+
+    Args:
+        frame: The image frame (modified in-place)
+        x1, y1, x2, y2: Bounding box coordinates
+        mask: Segmentation mask (binary array)
+        color: Outline color in BGR format
+        thickness: Outline thickness in pixels
+    """
+    if mask is None or mask.size == 0:
+        # If no mask, draw rectangle outline
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
+        return
+
+    roi_h = y2 - y1
+    roi_w = x2 - x1
+    if roi_h <= 0 or roi_w <= 0:
+        return
+
+    # Resize mask to fit the ROI
+    resized_mask = cv2.resize(mask.astype(np.uint8), (roi_w, roi_h))
+
+    # Find contours in the mask
+    contours, _ = cv2.findContours(resized_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Draw contours on the frame (offset by bounding box position)
+    for contour in contours:
+        # Offset contour points to absolute frame coordinates
+        contour_shifted = contour + np.array([x1, y1])
+        cv2.drawContours(frame, [contour_shifted], -1, color, thickness)
+
 def draw_on_frame(frame, bboxes, labels, masks):
     """
     Draw bounding boxes, labels, scores, and optional masks on a frame.
+    For recognized logos: applies color censoring if CENSOR_ENABLED is True.
+    For unknown logos: hidden (not drawn).
+
     Args:
         frame: The image frame (numpy array).
         bboxes: List of bounding boxes.
@@ -101,6 +186,8 @@ def draw_on_frame(frame, bboxes, labels, masks):
     Returns:
         The frame with drawn results.
     """
+    from config import CENSOR_ENABLED, CENSOR_SHAPE, CENSOR_COLOR, MAX_MASK_SIZE, OUTLINE_ENABLED, OUTLINE_COLOR, OUTLINE_THICKNESS
+
     # Make a copy to avoid modifying the original frame if it's used elsewhere
     output_frame = frame.copy()
     if bboxes is not None and labels is not None:
@@ -117,31 +204,55 @@ def draw_on_frame(frame, bboxes, labels, masks):
                 label, score = "Error", 0.0
 
             x1, y1, x2, y2 = map(int, bbox)
-            color = (0, 255, 0) if label != "Unknown" else (0, 0, 255)
-            
-            # Draw bounding box
-            cv2.rectangle(output_frame, (x1, y1), (x2, y2), color, 2)
-            
-            # Prepare text for label and score
-            text = f"{label} ({score:.2f})"
-            # Put text above the bounding box
-            cv2.putText(output_frame, text, (x1, max(y1 - 10, 0)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-            
-            # Draw mask if available and valid
-            if mask is not None and mask.size > 0:
-                roi = output_frame[y1:y2, x1:x2]
-                if roi.shape[0] > 0 and roi.shape[1] > 0:
-                    try:
-                        # Resize mask to fit the ROI
-                        resized_mask = cv2.resize(mask.astype(np.uint8), (roi.shape[1], roi.shape[0]))
-                        colored_mask = np.zeros_like(roi)
-                        # Ensure resized_mask is boolean for indexing
-                        colored_mask[resized_mask > 0] = color
-                        # Blend the mask with the ROI
-                        blended_roi = cv2.addWeighted(roi, 1.0, colored_mask, 0.4, 0)
-                        output_frame[y1:y2, x1:x2] = blended_roi
-                    except cv2.error as e:
-                        # Ignore errors from invalid mask/ROI
-                        pass
+
+            # Check mask size filter (applies regardless of CENSOR_ENABLED)
+            should_process = True
+            if MAX_MASK_SIZE is not None and mask is not None and mask.size > 0:
+                mask_area = np.sum(mask > 0)  # Count non-zero pixels
+                if mask_area > MAX_MASK_SIZE:
+                    should_process = False  # Skip logos with large masks
+
+            # Only process if mask size is within limits
+            if not should_process:
+                continue  # Skip this logo entirely
+
+            # When censoring is enabled: only process recognized logos, skip unknown
+            if CENSOR_ENABLED:
+                if label != "Unknown":
+                    # Apply color censoring to recognized logos
+                    apply_color_censor(output_frame, x1, y1, x2, y2, mask, CENSOR_COLOR, CENSOR_SHAPE)
+
+                    # Draw outline around the censored area
+                    if OUTLINE_ENABLED:
+                        draw_mask_outline(output_frame, x1, y1, x2, y2, mask, OUTLINE_COLOR, OUTLINE_THICKNESS)
+                # Skip drawing unknown logos (they won't appear)
+            else:
+                # When censoring is disabled: draw annotations for all logos
+                color = (0, 255, 0) if label != "Unknown" else (0, 0, 255)
+
+                # Draw bounding box
+                cv2.rectangle(output_frame, (x1, y1), (x2, y2), color, 2)
+
+                # Prepare text for label and score
+                text = f"{label} ({score:.2f})"
+                # Put text above the bounding box
+                cv2.putText(output_frame, text, (x1, max(y1 - 10, 0)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+                # Draw mask if available and valid
+                if mask is not None and mask.size > 0:
+                    roi = output_frame[y1:y2, x1:x2]
+                    if roi.shape[0] > 0 and roi.shape[1] > 0:
+                        try:
+                            # Resize mask to fit the ROI
+                            resized_mask = cv2.resize(mask.astype(np.uint8), (roi.shape[1], roi.shape[0]))
+                            colored_mask = np.zeros_like(roi)
+                            # Ensure resized_mask is boolean for indexing
+                            colored_mask[resized_mask > 0] = color
+                            # Blend the mask with the ROI
+                            blended_roi = cv2.addWeighted(roi, 1.0, colored_mask, 0.4, 0)
+                            output_frame[y1:y2, x1:x2] = blended_roi
+                        except cv2.error as e:
+                            # Ignore errors from invalid mask/ROI
+                            pass
     return output_frame

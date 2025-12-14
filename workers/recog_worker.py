@@ -31,7 +31,7 @@ def identify_logo_batch(image_tensors, mask_tensors, model, db_embeddings, db_la
             results = []
             for sim, idx in zip(max_sims_cpu, max_indices_cpu):
                 # If similarity above threshold, assign label; else "Unknown"
-                if sim > config.RECOG_CONF_THRESHOLD:
+                if sim > config.LOGO_SIMILARITY_THRESHOLD:
                     results.append((db_labels[idx], float(sim)))
                 else:
                     results.append(("Unknown", float(sim)))

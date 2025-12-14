@@ -16,7 +16,7 @@ from torch.amp.autocast_mode import autocast
 
 import config
 from model import LogoEncoder
-from utils import load_embeddings, resize_with_padding, draw_on_frame
+from utils import load_embeddings, resize_with_padding, draw_on_frame, reset_output_video
 
 
 def copy_audio(input_video, output_video_no_audio, output_video_with_audio):
@@ -210,7 +210,7 @@ class LogoPipeline:
                     max_indices_cpu = max_indices.cpu().numpy()
 
                     for sim, idx in zip(max_sims_cpu, max_indices_cpu):
-                        if sim > config.RECOG_CONF_THRESHOLD:
+                        if sim > config.LOGO_SIMILARITY_THRESHOLD:
                             all_labels.append((self.db_labels[idx], float(sim)))
                         else:
                             all_labels.append(("Unknown", float(sim)))
@@ -221,6 +221,9 @@ class LogoPipeline:
         """Process entire video through the pipeline"""
         print(f"Processing video: {input_path}")
         print(f"Output will be saved to: {output_path}\n")
+
+        # Reset output - delete existing files
+        reset_output_video(output_path)
 
         # Create temporary output path (without audio)
         output_path_temp = str(Path(output_path).with_suffix('')) + '_temp.mp4'

@@ -2,7 +2,7 @@
 import os
 from multiprocessing import Process, Event, Value, Queue
 import time
-from utils import setup_worker_logger
+from utils import setup_worker_logger, reset_output_video
 import multiprocessing as mp
 
 import config
@@ -24,6 +24,10 @@ def main():
         logger.error(f"Embedding database not found: {config.EMBED_DB_PATH}")
         logger.error("Please run 'python create_database.py' first to generate the database.")
         return
+
+    # Reset output - delete existing files
+    logger.info(f"Resetting output video: {config.OUTPUT_PATH}")
+    reset_output_video(config.OUTPUT_PATH)
 
     # --- Create Queues and Sync Primitives ---
     input_to_detect_queue = Queue(maxsize=config.QUEUE_SIZE)
