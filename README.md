@@ -61,7 +61,7 @@ Configure video paths in `config.py` before running.
 
 ## Directory Structure
 
-- `workers/`: All multiprocessing worker scripts (input, detect, transform, recognize, output)
+- `workers/`: All multiprocessing worker scripts (input, detect, resize, recognize, output)
 - `support_data/`: Support images and masks for database creation
 - `weights/`: Model weights and embedding database
 - `utils.py`: Utility functions
