@@ -84,6 +84,6 @@ Configure video paths in `config.py` before running.
 ## Configuration
 
 **Hardware:**
-- CPU: 12th gen intel(r) core(tm) i9-12900k
+- CPU: 11th gen intel(r) core(tm) i7-1195g7
 - Ram: 16GB
 - GPU: NVIDIA GeForce RTX 3060 4VRAM
