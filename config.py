@@ -53,8 +53,8 @@ LOGO_SIMILARITY_THRESHOLD = 0.5
 # NUM_YOLO_WORKERS: Number of parallel YOLO detection worker processes
 NUM_YOLO_WORKERS = 1
 
-# NUM_TRANSFORM_WORKERS: Number of parallel transform worker processes (for cropping/masking)
-NUM_TRANSFORM_WORKERS = 1
+# NUM_RESIZE_WORKERS: Number of parallel resize worker processes (for cropping/masking)
+NUM_RESIZE_WORKERS = 1
 
 # NUM_ARCFACE_WORKERS: Number of parallel recognition worker processes
 NUM_ARCFACE_WORKERS = 1

@@ -1,4 +1,4 @@
-# transform_worker.py
+# resize_worker.py
 import time
 import numpy as np
 import cv2
@@ -9,10 +9,10 @@ from torchvision import transforms
 from utils import setup_worker_logger, resize_with_padding
 import config
 
-def transform_worker(input_queue, output_queue, start_event, ready_counter, worker_id):
+def resize_worker(input_queue, output_queue, start_event, ready_counter, worker_id):
     # Initialize logger for this worker process with unique ID
-    logger = setup_worker_logger("TransformWorker", "logs/transform_worker.log", worker_id)
-    logger.info(f"Transform worker {worker_id} starting...")
+    logger = setup_worker_logger("ResizeWorker", "logs/resize_worker.log", worker_id)
+    logger.info(f"Resize worker {worker_id} starting...")
 
     # Define image transform for recognition model
     transform = transforms.Compose([
@@ -44,7 +44,7 @@ def transform_worker(input_queue, output_queue, start_event, ready_counter, work
         if data is None:
             logger.info("Stop signal received.")
             break
-        
+
         # Start timing for this frame
         start_time = time.time()
 
@@ -75,9 +75,9 @@ def transform_worker(input_queue, output_queue, start_event, ready_counter, work
                 crop = frame[y1:y2, x1:x2]
                 if crop.size == 0:
                     continue
-                
+
                 bboxes_to_keep.append((x1, y1, x2, y2))
-                
+
                 # Prepare mask crop for this detection
                 mask_crop = None
                 if resized_masks is not None and i < len(resized_masks):
@@ -90,7 +90,7 @@ def transform_worker(input_queue, output_queue, start_event, ready_counter, work
                 padded_img = resize_with_padding(pil_img, target_size=config.RECOG_IMAGE_SIZE)
                 img_tensor = transform(padded_img)
                 image_tensors.append(img_tensor)
-                
+
                 # Prepare mask tensor for recognition
                 padded_mask_tensor = torch.ones(1, config.RECOG_IMAGE_SIZE, config.RECOG_IMAGE_SIZE)
                 if mask_crop is not None:
@@ -109,7 +109,7 @@ def transform_worker(input_queue, output_queue, start_event, ready_counter, work
         total_frames_processed += 1
 
     # Log summary statistics when worker finishes
-    logger.info(f"Transform worker {worker_id} finished.")
+    logger.info(f"Resize worker {worker_id} finished.")
     logger.info(f"Total frames processed: {total_frames_processed}")
     if total_frames_processed > 0:
         logger.info(f"Average pre-processing time per frame: {total_processing_time / total_frames_processed:.4f} seconds")

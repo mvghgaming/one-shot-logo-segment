@@ -10,7 +10,7 @@ from workers.input_worker import input_worker
 from workers.detect_worker import detect_worker
 from workers.recog_worker import recog_worker
 from workers.output_worker import output_worker
-from workers.transform_worker import transform_worker
+from workers.resize_worker import resize_worker
 
 def main():
     logger = setup_worker_logger("MainProcess","logs/main.log")
@@ -43,7 +43,7 @@ def main():
     # Store processes in lists to manage shutdown by stage
     input_procs = []
     detect_procs = []
-    transform_procs = []
+    resize_procs = []
     recog_procs = []
     output_procs = []
 
@@ -70,17 +70,17 @@ def main():
         ))
         detect_procs.append(p_detect)
 
-    # Transform workers
-    num_transform_workers = config.NUM_TRANSFORM_WORKERS
-    for i in range(num_transform_workers):
-        p_transform = Process(target=transform_worker, name=f"TransformWorker-{i+1}", args=(
+    # Resize workers
+    num_resize_workers = config.NUM_RESIZE_WORKERS
+    for i in range(num_resize_workers):
+        p_resize = Process(target=resize_worker, name=f"ResizeWorker-{i+1}", args=(
             detect_to_process_queue,
             process_to_recog_queue,
             start_event,
             ready_counter,
             i + 1  # worker_id for unique logging
         ))
-        transform_procs.append(p_transform)
+        resize_procs.append(p_resize)
     
     # Recog workers
     num_recog_workers = config.NUM_ARCFACE_WORKERS
@@ -106,7 +106,7 @@ def main():
     ))
     output_procs.append(p_output)
     
-    all_processes = input_procs + detect_procs + transform_procs + recog_procs + output_procs
+    all_processes = input_procs + detect_procs + resize_procs + recog_procs + output_procs
     num_workers = len(all_processes)
 
     # --- Start All Processes ---
@@ -140,13 +140,13 @@ def main():
         p.join()
     logger.info("Detection workers have finished.")
 
-    # 3. Signal the transform workers to stop and wait for them.
-    logger.info("Signaling transform workers to terminate...")
-    for _ in range(num_transform_workers):
+    # 3. Signal the resize workers to stop and wait for them.
+    logger.info("Signaling resize workers to terminate...")
+    for _ in range(num_resize_workers):
         detect_to_process_queue.put(None)
-    for p in transform_procs:
+    for p in resize_procs:
         p.join()
-    logger.info("Transform workers have finished.")
+    logger.info("Resize workers have finished.")
 
     # 4. Signal all recognition workers to stop and wait for them to finish.
     logger.info("Signaling recognition workers to terminate...")
