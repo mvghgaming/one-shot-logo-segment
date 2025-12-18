@@ -83,4 +83,10 @@ input/
 check_dataset.py
 create_dataset.py
 
-weights/
+weights/*
+
+!weights/
+
+!weights/*.rar
+
+pdf/
