@@ -49,7 +49,7 @@ Figure 1 presents the high-level system architecture.
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│   │  INPUT  │────▶│ DETECT  │────▶│ RESIZE  │────▶│  RECOG  │────▶│ OUTPUT  │
+│   │  INPUT  │────▶│ DETECT  │────▶│ PREPROC │────▶│  RECOG  │────▶│ OUTPUT  │
 │   │ WORKER  │     │ WORKER  │     │ WORKER  │     │ WORKER  │     │ WORKER  │
 │   └────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘
 │        │               │               │               │               │
@@ -140,7 +140,7 @@ Table 3 maps each stage to its responsibilities, inputs, outputs, and implementa
 |-------|---------------|-------|--------|--------|
 | Input | Frame extraction | Video file | (frame_id, frame) | input_worker.py |
 | Detect | Region localization | Frame | (frame_id, frame, boxes, confs, masks) | detect_worker.py |
-| Resize | Image preprocessing | Detection results | (frame_id, frame, tensors, masks, bboxes) | resize_worker.py |
+| Preprocess | Image preprocessing | Detection results | (frame_id, frame, tensors, masks, bboxes) | preprocess_worker.py |
 | Recog | Logo classification | Preprocessed tensors | (frame_id, frame, bboxes, labels, masks) | recog_worker.py |
 | Output | Video synthesis | Recognition results | Video file with audio | output_worker.py |
 
@@ -155,7 +155,7 @@ Within the utility module, functionality decomposes into atomic operations as sh
 | Function | Operation | Reuse Context |
 |----------|-----------|---------------|
 | setup_worker_logger() | Logging configuration | All workers |
-| resize_with_padding() | Aspect-preserving resize | Resize worker, database creation |
+| resize_with_padding() | Aspect-preserving resize | Preprocess worker, database creation |
 | draw_on_frame() | Visualization rendering | Output worker |
 | apply_color_censor() | Region masking | Output worker (censor mode) |
 | draw_mask_outline() | Contour rendering | Output worker |
@@ -290,7 +290,7 @@ The system exhibits a layered abstraction hierarchy as illustrated in Figure 5.
 │         (Pipeline orchestration, process management)         │
 ├─────────────────────────────────────────────────────────────┤
 │                       WORKER LAYER                           │
-│    input_worker, detect_worker, resize_worker,               │
+│    input_worker, detect_worker, preprocess_worker,           │
 │    recog_worker, output_worker                               │
 │         (Stage-specific processing logic)                    │
 ├─────────────────────────────────────────────────────────────┤
@@ -440,7 +440,7 @@ The main orchestration algorithm coordinates multi-process execution through a d
 │  2. WORKER DEPLOYMENT                                       │
 │     ├── Spawn input worker (1)                              │
 │     ├── Spawn detect workers (NUM_YOLO_WORKERS)             │
-│     ├── Spawn resize workers (NUM_RESIZE_WORKERS)           │
+│     ├── Spawn preprocess workers (NUM_PREPROCESS_WORKERS)   │
 │     ├── Spawn recog workers (NUM_ARCFACE_WORKERS)           │
 │     └── Spawn output worker (1)                             │
 │                                                             │
@@ -451,7 +451,7 @@ The main orchestration algorithm coordinates multi-process execution through a d
 │  4. COORDINATED SHUTDOWN                                    │
 │     ├── Join input workers                                  │
 │     ├── Signal and join detect workers                      │
-│     ├── Signal and join resize workers                      │
+│     ├── Signal and join preprocess workers                  │
 │     ├── Signal and join recog workers                       │
 │     └── Signal and join output worker                       │
 │                                                             │
@@ -668,7 +668,7 @@ Wing, J. M. (2006). Computational thinking. *Communications of the ACM*, 49(3), 
 | YOLO_CONF_THRESHOLD | 0.5 | Detection confidence threshold |
 | LOGO_SIMILARITY_THRESHOLD | 0.5 | Recognition similarity threshold |
 | NUM_YOLO_WORKERS | 1 | Detection worker count |
-| NUM_RESIZE_WORKERS | 1 | Preprocessing worker count |
+| NUM_PREPROCESS_WORKERS | 1 | Preprocessing worker count |
 | NUM_ARCFACE_WORKERS | 1 | Recognition worker count |
 | QUEUE_SIZE | 100 | Inter-process queue capacity |
 | YOLO_BATCH_SIZE | 4 | Detection batch size |

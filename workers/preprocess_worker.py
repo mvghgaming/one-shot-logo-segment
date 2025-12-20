@@ -1,4 +1,4 @@
-# resize_worker.py
+# preprocess_worker.py
 import time
 import numpy as np
 import cv2
@@ -9,10 +9,10 @@ from torchvision import transforms
 from utils import setup_worker_logger, resize_with_padding
 import config
 
-def resize_worker(input_queue, output_queue, start_event, ready_counter, worker_id):
+def preprocess_worker(input_queue, output_queue, start_event, ready_counter, worker_id):
     # Initialize logger for this worker process with unique ID
-    logger = setup_worker_logger("ResizeWorker", "logs/resize_worker.log", worker_id)
-    logger.info(f"Resize worker {worker_id} starting...")
+    logger = setup_worker_logger("PreprocessWorker", "logs/preprocess_worker.log", worker_id)
+    logger.info(f"Preprocess worker {worker_id} starting...")
 
     # Define image transform for recognition model
     transform = transforms.Compose([
@@ -109,7 +109,7 @@ def resize_worker(input_queue, output_queue, start_event, ready_counter, worker_
         total_frames_processed += 1
 
     # Log summary statistics when worker finishes
-    logger.info(f"Resize worker {worker_id} finished.")
+    logger.info(f"Preprocess worker {worker_id} finished.")
     logger.info(f"Total frames processed: {total_frames_processed}")
     if total_frames_processed > 0:
         logger.info(f"Average pre-processing time per frame: {total_processing_time / total_frames_processed:.4f} seconds")
